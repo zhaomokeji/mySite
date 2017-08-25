@@ -4,6 +4,7 @@ var fs = require('fs');
 var documentRoot = 'C:/gitProjects/mySite/windows/www';
 
 var clientSet = new Set();
+var clinetMoreInfoSet = new Set();
 var lastCount = 0;
 
 var server= http.createServer(function(req,res){
@@ -23,50 +24,39 @@ var server= http.createServer(function(req,res){
 		if (!ipAddress) {
 		ipAddress = req.connection.remoteAddress;
 		}
-		ipAddress = '114.255.44.132';
-		if(!clientSet.has(ipAddress)){
-			if(ipAddress.toString().length > 8) {
-				var getUrl = 'http://ip.ws.126.net/ipquery?ip='+ipAddress;
-				const reqIp = http.get(getUrl,function(resp){
-					var html='';  
-					console.log(`STATUS: ${resp.statusCode}`);
-					console.log(`HEADERS: ${JSON.stringify(resp.headers)}`);
-					//resp.setEncoding('utf8');
-					resp.on('data',function(data){
-						//var arr=data.toString().split('{');
-						//if (arr.length >=2){
-						//	var info = arr[1].replace('}','');
-						//	html+= info;
-						//}
-						html += data; 
-						
-					});  
-					resp.on('end',function(){  
-						console.log(html)
-						eval(html);
-						clientSet.add(ipAddress + ':' +localAddress.province + ' ' + localAddress.city); //这里中文是乱码
-					});  
-				});
-				reqIp.on('error', (e) => {
-				  console.log(`problem with reqIp request: ${e.message}`);
-				});
-			}
-				
-		}
-		
+		clientSet.add(ipAddress);
 		if(lastCount != clientSet.size){
 			lastCount = clientSet.size;
 			console.log("  " + lastCount)	
 		}
 	}
 	if(url == '/count'){
-		//res.writeHead(200, {'Content-Type': 'text/html; charset=utf-8'}); 
-		res.setHeader('Content-Type', 'text/html; charset=utf-8');
-			res.write('<p>ip列表:' + clientSet.size + '</p><br>');
+		res.writeHeader(203,{
+                'content-type' : 'text/html;charset="utf-8"'
+            });
+			res.write('<p>ip列表</p>');
+			//clinetMoreInfoSet.clear();
 			clientSet.forEach(function (item) {
-				res.write(item.toString()+ '<br>');
+				if(item.toString().length > 8) {
+					var getUrl = 'http://ip.ws.126.net/ipquery?ip='+item.toString();
+					http.get(getUrl,function(req,res2){  
+						var html='';  
+						req.on('data',function(data){  
+							html+=data;
+						});  
+						req.on('end',function(){  
+							//res.write(item.toString()+ ':' + html + '<br>');
+							//console.log(item.toString()+ ':' + html + '<br>');
+							clinetMoreInfoSet.add(item.toString()+ ':' + html );
+		//					res.write('kkkkk');
+						});  
+					});
+				}
 			});
 			
+			clinetMoreInfoSet.forEach(function (item) {
+				//res.write(item.toString() + '<br>');
+			});
             return res.end();
 			
 	}
